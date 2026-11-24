@@ -1,10 +1,17 @@
-/**
- * Centralized API Client for TriageSync.
- * Uses credentials: 'include' for automatic httpOnly cookie handling,
- * and attaches Authorization: Bearer <token> header as fallback.
- */
+import axios from 'axios';
 
-const API_BASE = '/api';
+/**
+ * Axios Base Instance for TriageSync API.
+ * Configured with baseURL: '/api' and withCredentials: true
+ * for automatic httpOnly cookie handling.
+ */
+const api = axios.create({
+  baseURL: '/api',
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
 
 export const getStoredToken = () => {
   return localStorage.getItem('triagesync_token');
@@ -18,61 +25,47 @@ export const setStoredToken = (token) => {
   }
 };
 
-const request = async (endpoint, options = {}) => {
+// Request Interceptor: Attach fallback Authorization Bearer header
+api.interceptors.request.use((config) => {
   const token = getStoredToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {})
-  };
-
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    config.headers.Authorization = `Bearer ${token}`;
   }
+  return config;
+});
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-    credentials: 'include' // Sends httpOnly cookies automatically
-  });
-
-  const data = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    const errorMsg = data?.error?.message || `Request failed with status ${response.status}`;
-    const error = new Error(errorMsg);
-    error.code = data?.error?.code || 'UNKNOWN_ERROR';
-    error.status = response.status;
-    throw error;
+// Response Interceptor: Extract Section 7 API contract errors
+api.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    const errorData = error.response?.data?.error;
+    const message = errorData?.message || error.message || 'Request failed';
+    const customError = new Error(message);
+    customError.code = errorData?.code || 'UNKNOWN_ERROR';
+    customError.status = error.response?.status || 500;
+    return Promise.reject(customError);
   }
+);
 
-  return data;
-};
-
-// 1. Authentication Endpoints
+// 1. Auth Endpoints
 export const authAPI = {
   login: async (email, password) => {
-    const res = await request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password })
-    });
+    const res = await api.post('/auth/login', { email, password });
     if (res.token) setStoredToken(res.token);
     return res;
   },
 
   register: async (name, email, password) => {
-    return request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ name, email, password })
-    });
+    return api.post('/auth/register', { name, email, password });
   },
 
   getMe: async () => {
-    return request('/auth/me');
+    return api.get('/auth/me');
   },
 
   logout: async () => {
     try {
-      await request('/auth/logout', { method: 'POST' });
+      await api.post('/auth/logout');
     } finally {
       setStoredToken(null);
     }
@@ -82,131 +75,84 @@ export const authAPI = {
 // 2. Ticket Endpoints
 export const ticketAPI = {
   getTickets: async (params = {}) => {
-    const query = new URLSearchParams();
-    if (params.page) query.append('page', params.page);
-    if (params.limit) query.append('limit', params.limit || 10);
-    if (params.status) query.append('status', params.status);
-    if (params.category) query.append('category', params.category);
-    if (params.priority) query.append('priority', params.priority);
-    if (params.q) query.append('q', params.q);
-
-    return request(`/tickets?${query.toString()}`);
+    return api.get('/tickets', { params });
   },
 
   getTicketById: async (id) => {
-    return request(`/tickets/${id}`);
+    return api.get(`/tickets/${id}`);
   },
 
   updateTicket: async (id, updates, agentHeader) => {
     const headers = {};
     if (agentHeader) headers['X-Agent'] = agentHeader;
-
-    return request(`/tickets/${id}`, {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify(updates)
-    });
+    return api.patch(`/tickets/${id}`, updates, { headers });
   },
 
   importTickets: async (tickets) => {
-    return request('/tickets/import', {
-      method: 'POST',
-      body: JSON.stringify({ tickets })
-    });
+    return api.post('/tickets/import', { tickets });
   },
 
   getStats: async () => {
-    return request('/stats');
+    return api.get('/stats');
   }
 };
 
 // 3. Resource Endpoints
 export const resourceAPI = {
   getResources: async (params = {}) => {
-    const query = new URLSearchParams();
-    if (params.page) query.append('page', params.page);
-    if (params.type) query.append('type', params.type);
-    if (params.minCapacity) query.append('minCapacity', params.minCapacity);
-    if (params.search) query.append('search', params.search);
-
-    return request(`/resources?${query.toString()}`);
+    return api.get('/resources', { params });
   },
 
   getResourceById: async (id) => {
-    return request(`/resources/${id}`);
+    return api.get(`/resources/${id}`);
   },
 
   createResource: async (resourceData) => {
-    return request('/resources', {
-      method: 'POST',
-      body: JSON.stringify(resourceData)
-    });
+    return api.post('/resources', resourceData);
   },
 
   updateResource: async (id, updateData) => {
-    return request(`/resources/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(updateData)
-    });
+    return api.patch(`/resources/${id}`, updateData);
   },
 
   getAvailability: async (id, from, to) => {
-    return request(`/resources/${id}/availability?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+    return api.get(`/resources/${id}/availability`, { params: { from, to } });
   }
 };
 
 // 4. Booking Endpoints
 export const bookingAPI = {
   createBooking: async (bookingData) => {
-    return request('/bookings', {
-      method: 'POST',
-      body: JSON.stringify(bookingData)
-    });
+    return api.post('/bookings', bookingData);
   },
 
   getMyBookings: async (params = {}) => {
-    const query = new URLSearchParams();
-    if (params.page) query.append('page', params.page);
-    if (params.status) query.append('status', params.status);
-    return request(`/bookings/mine?${query.toString()}`);
+    return api.get('/bookings/mine', { params });
   },
 
   getBookingById: async (id) => {
-    return request(`/bookings/${id}`);
+    return api.get(`/bookings/${id}`);
   },
 
   getAllBookings: async (params = {}) => {
-    const query = new URLSearchParams();
-    if (params.page) query.append('page', params.page);
-    if (params.status) query.append('status', params.status);
-    if (params.resourceId) query.append('resourceId', params.resourceId);
-    if (params.from && params.to) {
-      query.append('from', params.from);
-      query.append('to', params.to);
-    }
-    return request(`/bookings?${query.toString()}`);
+    return api.get('/bookings', { params });
   },
 
   cancelBooking: async (id) => {
-    return request(`/bookings/${id}/cancel`, {
-      method: 'PATCH'
-    });
+    return api.patch(`/bookings/${id}/cancel`);
   },
 
   approveBooking: async (id) => {
-    return request(`/bookings/${id}/approve`, {
-      method: 'PATCH'
-    });
+    return api.patch(`/bookings/${id}/approve`);
   },
 
   rejectBooking: async (id, note) => {
-    return request(`/bookings/${id}/reject`, {
-      method: 'PATCH',
-      body: JSON.stringify({ note })
-    });
+    return api.patch(`/bookings/${id}/reject`, { note });
   },
 
   getAdminStats: async () => {
-    return request('/admin/stats');
+    return api.get('/admin/stats');
   }
 };
+
+export default api;

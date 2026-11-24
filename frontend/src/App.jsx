@@ -4,6 +4,7 @@ import { Layers, Calendar, CheckSquare, ShieldCheck, LogIn, LogOut, User as User
 import { checkAuth, logout, selectUser, selectIsAuthenticated, selectIsAdmin } from './store/slices/authSlice.js';
 import AuthModal from './components/AuthModal.jsx';
 import TriageQueue from './pages/TriageQueue.jsx';
+import Resources from './pages/Resources.jsx';
 
 export default function App() {
   const dispatch = useDispatch();
@@ -125,14 +126,7 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === 'triage' && <TriageQueue />}
 
-        {activeTab === 'resources' && (
-          <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-8 text-center">
-            <h2 className="text-xl font-bold text-slate-800">Internal Resource Availability & Booking</h2>
-            <p className="mt-2 text-slate-600 text-sm max-w-xl mx-auto">
-              Ready for 30-minute equipment and room slot picker with atomic race-condition prevention.
-            </p>
-          </div>
-        )}
+        {activeTab === 'resources' && <Resources />}
 
         {activeTab === 'admin' && (
           <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-8 text-center">
