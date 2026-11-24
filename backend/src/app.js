@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { errorHandler } from './middlewares/error.middleware.js';
 import { ApiError } from './utils/apiError.js';
+import apiRoutes from './routes/index.js';
 
 const app = express();
 
@@ -40,6 +41,8 @@ app.get('/api/health', (req, res) => {
 app.get('/', (req, res) => {
   res.status(200).send('TriageSync API is running');
 });
+// Mount all API routes under /api base path
+app.use('/api', apiRoutes);
 
 // Catch-all 404 handler for undefined API routes adhering to Section 7 error contract
 app.use((req, res, next) => {
