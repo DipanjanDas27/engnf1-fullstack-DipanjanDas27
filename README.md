@@ -29,11 +29,11 @@ Support teams receive hundreds of incoming tickets daily. TriageSync:
 ---
 
 ## 4. Tech Stack
-- **Frontend:** React (JavaScript / JSX), Vite, Tailwind CSS, Lucide Icons
-- **Backend:** Node.js, Express.js (JavaScript, REST API)
-- **Database:** PostgreSQL (with transaction locking for atomic race-safety)
-- **Authentication:** JWT (24-hour expiry) & Bcrypt (cost 10+)
-- **Testing & Tools:** Node test runner / Supertest / Autocannon for concurrency testing
+- **Frontend:** React (JavaScript / JSX), Vite, Redux Toolkit, Tailwind CSS, Axios, Lucide Icons
+- **Backend:** Node.js, Express.js (JavaScript, REST API, port 8000)
+- **Database:** PostgreSQL (with transaction locking and exclusion constraints for atomic race-safety)
+- **Authentication:** Dual httpOnly Cookies & JWT Bearer token fallback (24-hour expiry) & Bcrypt (cost 10+)
+- **Testing & Tools:** Node test runner, Docker PostgreSQL container, Neon Serverless Postgres
 
 ---
 
