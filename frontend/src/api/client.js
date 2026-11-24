@@ -2,11 +2,13 @@ import axios from 'axios';
 
 /**
  * Axios Base Instance for TriageSync API.
- * Configured with baseURL: '/api' and withCredentials: true
- * for automatic httpOnly cookie handling.
+ * Configured with environment-aware baseURL (VITE_API_URL or '/api')
+ * and withCredentials: true for automatic httpOnly cookie handling.
  */
+const baseURL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
