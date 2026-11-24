@@ -13,8 +13,9 @@ Support teams receive hundreds of incoming tickets daily. TriageSync:
 ---
 
 ## 2. Live Links
-- **Frontend Live URL:** *(To be updated upon deployment)*
-- **Backend API Live URL:** *(To be updated upon deployment)*
+- **Frontend Live URL:** [https://frontend-mauve-eight-54u4e0vcre.vercel.app](https://frontend-mauve-eight-54u4e0vcre.vercel.app)
+- **Backend API Live URL:** [https://engnf1-fullstack-dipanjandas27.onrender.com](https://engnf1-fullstack-dipanjandas27.onrender.com)
+- **API Health Check:** [https://engnf1-fullstack-dipanjandas27.onrender.com/api/health](https://engnf1-fullstack-dipanjandas27.onrender.com/api/health)
 - **GitHub Repository:** [https://github.com/DipanjanDas27/engnf1-fullstack-DipanjanDas27](https://github.com/DipanjanDas27/engnf1-fullstack-DipanjanDas27)
 
 ---
@@ -99,12 +100,22 @@ engnf1-fullstack-DipanjanDas27/
    npm run dev
    ```
 
-4. **Idempotent Seed Command:**
+3. **Database Initialization & Idempotent Seed:**
    ```bash
    cd backend
-   npm run seed
+   npm run db:init
+   npm run db:seed
    ```
-   *Note: Running `npm run seed` multiple times is safe and never creates duplicate tickets, users, or resources.*
+   *Note: Running `npm run db:seed` multiple times is idempotent and creates zero duplicate records.*
+
+4. **Run Verification & Benchmarking Test Suites:**
+   ```bash
+   # Run 10-concurrent requests race-safety stress test (Rule B6)
+   npm run test:concurrency
+
+   # Run 500+ tickets database query latency benchmark (Section 4)
+   npm run test:benchmark
+   ```
 
 ---
 
@@ -150,15 +161,18 @@ Base path: `/api`. Responses adhere strictly to `{ data: [], page, pageSize, tot
 
 ## 9. Completed Features Checklist
 - [x] Initial monorepo layout and documentation scaffolding
-- [ ] PostgreSQL schema with constraints & indexes
-- [ ] Idempotent seed script with mandatory test accounts & seed data
-- [ ] Auth & RBAC endpoints with bcrypt (cost 10+) and JWT
-- [ ] Deterministic auto-triage classifier & human-override protection
-- [ ] Ticket review, injection-safe search, and audit logging (`ticket_events`)
-- [ ] Race-safe resource booking with atomic concurrency protection
-- [ ] Frontend with responsive design and instant Optimistic UI rollback
-- [ ] Concurrency verification script (10 simultaneous requests test)
-- [ ] Live deployment on HTTPS
+- [x] PostgreSQL relational schema with exclusion constraints & indexes
+- [x] Idempotent seed script with mandatory test accounts & seed data
+- [x] Auth & RBAC endpoints with bcrypt (cost 10+) and dual httpOnly cookie / JWT bearer tokens
+- [x] Deterministic auto-triage classifier (T-B1) & human-override protection (T-B2)
+- [x] Ticket review, injection-safe search, and audit logging (`ticket_events` & T-B3)
+- [x] Race-safe resource booking with atomic concurrency protection (B1-B16)
+- [x] React frontend with responsive design, Redux auth, and instant Optimistic UI rollback
+- [x] Resource slot availability calendar, 30-min booking modal, minCapacity filter & pagination
+- [x] Admin governance dashboard: analytics, resource inventory & booking approvals
+- [x] Concurrency verification script (10 simultaneous requests test: 1x 201, 9x 409)
+- [x] Query latency benchmark on 500+ tickets (unindexed vs indexed 96.7% faster)
+- [x] Live deployment on HTTPS (Frontend on Vercel, Backend on Render, DB on Neon)
 
 ---
 

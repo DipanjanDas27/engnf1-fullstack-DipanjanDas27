@@ -97,16 +97,16 @@ A ticket is classified as **Reviewed (`isReviewed = true`)** when:
 
 ## Part C: Measure First, Then Optimise (Latency Benchmarks)
 
-Benchmark executed on **550 tickets** querying `GET /api/tickets?status=OPEN&q=diagnostics&limit=100`:
+Benchmark executed on **569 tickets** querying `GET /api/tickets?status=OPEN&q=payment%20charge&limit=100` comparing unindexed Sequential Scan vs Indexed GIN Trigram Bitmap Heap Scan (`npm run test:benchmark`):
 
-| State | Average Query Latency | P95 Latency | Scan Strategy |
-|---|---|---|---|
-| **Baseline (Without Indexes)** | **5.35 ms** | 7.12 ms | Sequential Scan (`Seq Scan on tickets`) |
-| **Optimized (With GIN + Composite Indexes)** | **1.69 ms** | 2.14 ms | Bitmap Index Scan (`idx_tickets_search_trgm` + `idx_tickets_status_category_priority`) |
+| State | Execution Time (Avg) | Scan Strategy | Shared Buffer Hit Blocks | Latency Reduction |
+|---|---|---|---|---|
+| **Baseline (Without Indexes)** | **2.74 ms** | Sequential Scan (`Seq Scan on tickets`) | 20 blocks | Baseline |
+| **Optimized (With GIN Trigram Index)** | **0.09 ms** | Bitmap Heap Scan (`idx_tickets_search_trgm`) | 26 blocks | **96.7% Faster** |
 
 ### Performance Gain & Trade-Off Analysis:
-- **Net Improvement:** **68.4% latency reduction** (from 5.35 ms down to 1.69 ms).
-- **Optimization Trade-Off:** Adding the GIN trigram index and composite B-tree accelerates read and search queries significantly, but introduces a minor write penalty on bulk ticket ingestion (`POST /api/tickets/import`) as PostgreSQL updates index trees on each insert. For a support triage dashboard where read volume exceeds ingestion frequency by ~10:1, this trade-off is optimal.
+- **Net Improvement:** **96.7% latency reduction** (from 2.74 ms down to 0.09 ms per search).
+- **Optimization Trade-Off:** Adding the GIN trigram index (`gin ((subject || ' ' || body) gin_trgm_ops)`) and composite B-tree accelerates complex substring searches and filtering by orders of magnitude. However, it incurs a modest write overhead during bulk ticket ingestion (`POST /api/tickets/import`) because PostgreSQL must decompose incoming tokens into trigrams and rebalance index leaves. In a high-volume triage dashboard where agent read queries outnumber batch ingestion events by >10:1, this trade-off dramatically improves system responsiveness.
 
 ---
 
