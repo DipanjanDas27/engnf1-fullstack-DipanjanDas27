@@ -5,6 +5,7 @@ import { checkAuth, logout, selectUser, selectIsAuthenticated, selectIsAdmin } f
 import AuthModal from './components/AuthModal.jsx';
 import TriageQueue from './pages/TriageQueue.jsx';
 import Resources from './pages/Resources.jsx';
+import AdminDashboard from './pages/AdminDashboard.jsx';
 
 export default function App() {
   const dispatch = useDispatch();
@@ -128,14 +129,7 @@ export default function App() {
 
         {activeTab === 'resources' && <Resources />}
 
-        {activeTab === 'admin' && (
-          <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-8 text-center">
-            <h2 className="text-xl font-bold text-slate-800">Administrative Analytics & Governance</h2>
-            <p className="mt-2 text-slate-600 text-sm max-w-xl mx-auto">
-              Resource toggle, approval/rejection workflows, and metrics dashboard.
-            </p>
-          </div>
-        )}
+        {activeTab === 'admin' && <AdminDashboard />}
       </main>
 
       {/* Auth Modal */}
