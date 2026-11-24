@@ -29,7 +29,7 @@ for (let h = 8; h <= 19; h++) {
   DAY_SLOTS.push(`${hh}:30`);
 }
 
-export default function Resources() {
+export default function Resources({ onOpenAuth }) {
   const isAuthenticated = useSelector(selectIsAuthenticated);
 
   const [activeSubTab, setActiveSubTab] = useState('resources'); // 'resources' | 'mine'
@@ -37,6 +37,9 @@ export default function Resources() {
   const [loading, setLoading] = useState(false);
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [search, setSearch] = useState('');
+  const [minCapacity, setMinCapacity] = useState('');
+  const [page, setPage] = useState(1);
+  const [paginationMeta, setPaginationMeta] = useState({ total: 0, totalPages: 1 });
 
   // Selected Resource & Availability Grid
   const [selectedResource, setSelectedResource] = useState(null);
@@ -64,21 +67,32 @@ export default function Resources() {
   const fetchResources = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {};
+      const params = { page, limit: 10 };
       if (typeFilter !== 'ALL') params.type = typeFilter;
       if (search.trim()) params.search = search.trim();
+      const cap = parseInt(minCapacity, 10);
+      if (!isNaN(cap) && cap > 0) {
+        params.minCapacity = cap;
+      }
       const res = await resourceAPI.getResources(params);
       const data = res.data || [];
       setResources(data);
-      if (data.length > 0 && !selectedResource) {
-        setSelectedResource(data[0]);
+      const totalCount = res.total ?? data.length;
+      setPaginationMeta({
+        total: totalCount,
+        totalPages: res.totalPages ?? (Math.ceil(totalCount / 10) || 1)
+      });
+      if (data.length > 0) {
+        setSelectedResource((prev) => (prev && data.some((d) => d.id === prev.id) ? prev : data[0]));
+      } else {
+        setSelectedResource(null);
       }
     } catch (err) {
       setAlert({ type: 'error', message: `Failed to load resources: ${err.message}` });
     } finally {
       setLoading(false);
     }
-  }, [typeFilter, search, selectedResource]);
+  }, [typeFilter, search, minCapacity, page]);
 
   // Fetch Availability for Selected Resource & Date
   const fetchAvailability = useCallback(async () => {
@@ -184,9 +198,17 @@ export default function Resources() {
           )}
         </div>
 
-        {selectedResource && isAuthenticated && (
+        {selectedResource && (
           <button
             onClick={() => {
+              if (!isAuthenticated) {
+                setAlert({
+                  type: 'error',
+                  message: 'Authentication required. Please sign in to book a resource slot.'
+                });
+                if (onOpenAuth) onOpenAuth();
+                return;
+              }
               setBookingForResource(selectedResource);
               setIsBookingModalOpen(true);
             }}
@@ -232,17 +254,24 @@ export default function Resources() {
                 <input
                   type="text"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
                   placeholder="Search resources..."
                   className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
 
+              {/* Type Filter Buttons */}
               <div className="flex space-x-1 overflow-x-auto pb-1 text-xs">
                 {RESOURCE_TYPES.map((t) => (
                   <button
                     key={t}
-                    onClick={() => setTypeFilter(t)}
+                    onClick={() => {
+                      setTypeFilter(t);
+                      setPage(1);
+                    }}
                     className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                       typeFilter === t
                         ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
@@ -252,6 +281,22 @@ export default function Resources() {
                     {t}
                   </button>
                 ))}
+              </div>
+
+              {/* Min Capacity Filter */}
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-600 uppercase">Min Capacity:</span>
+                <input
+                  type="number"
+                  min="1"
+                  value={minCapacity}
+                  onChange={(e) => {
+                    setMinCapacity(e.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="e.g. 5"
+                  className="w-24 px-2.5 py-1 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 text-right"
+                />
               </div>
             </div>
 
@@ -292,6 +337,32 @@ export default function Resources() {
                 })
               )}
             </div>
+
+            {/* Pagination Controls */}
+            {paginationMeta.totalPages > 1 && (
+              <div className="flex items-center justify-between pt-2 px-1 text-xs text-slate-600">
+                <span>
+                  Page <strong className="text-slate-800">{page}</strong> of{' '}
+                  <strong className="text-slate-800">{paginationMeta.totalPages}</strong> ({paginationMeta.total} total)
+                </span>
+                <div className="flex items-center space-x-1.5">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="px-2.5 py-1 border border-slate-300 rounded-lg bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer font-medium"
+                  >
+                    Prev
+                  </button>
+                  <button
+                    onClick={() => setPage((p) => Math.min(paginationMeta.totalPages, p + 1))}
+                    disabled={page >= paginationMeta.totalPages}
+                    className="px-2.5 py-1 border border-slate-300 rounded-lg bg-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 cursor-pointer font-medium"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Column: 30-Minute Availability Grid (Section 6.5) */}
