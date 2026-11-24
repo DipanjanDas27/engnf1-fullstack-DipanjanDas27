@@ -3,20 +3,29 @@ import { ApiError } from '../utils/apiError.js';
 import { findUserById } from '../repositories/user.repository.js';
 
 /**
- * Middleware to authenticate requests via JWT Bearer token.
- * Verifies the token, fetches the latest user details from the database,
- * and attaches verified user info ({ id, name, email, role }) to req.user.
+ * Middleware to authenticate requests via JWT Bearer token OR httpOnly cookie.
+ * Supports:
+ * 1. Authorization: Bearer <token> (Evaluator API test contract)
+ * 2. req.cookies.token (Secure browser sessions)
  *
- * Returns 401 UNAUTHENTICATED if token is missing/invalid or user does not exist.
+ * Verifies token against the database and attaches verified user ({ id, name, email, role }) to req.user.
+ * Returns 401 UNAUTHENTICATED if token is missing/invalid or user session does not exist.
  */
 export const authenticateUser = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  let token = null;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return next(ApiError.unauthenticated('Authorization bearer token is missing or malformed'));
+  // 1. Check Authorization Bearer header first (primary API contract)
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (req.cookies && req.cookies.token) {
+    // 2. Fall back to secure httpOnly cookie
+    token = req.cookies.token;
   }
 
-  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return next(ApiError.unauthenticated('Authorization token is missing or malformed'));
+  }
 
   try {
     const decoded = verifyToken(token);
@@ -32,7 +41,7 @@ export const authenticateUser = async (req, res, next) => {
         role: user.role
       };
     } else if (decoded.id && decoded.role) {
-      // Fallback to token claims during bootstrap/testing before DB pool is attached
+      // Fallback for bootstrap/testing before DB pool is attached
       req.user = {
         id: decoded.id,
         name: decoded.name || 'User',

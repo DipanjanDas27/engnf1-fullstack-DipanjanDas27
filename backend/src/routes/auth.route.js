@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, getProfile } from '../controllers/auth.controller.js';
+import { register, login, getProfile, logout } from '../controllers/auth.controller.js';
 import { authenticateUser } from '../middlewares/auth.middleware.js';
 
 const router = Router();
@@ -12,5 +12,8 @@ router.post('/login', login);
 
 // Endpoint 3: GET /api/auth/me (Authenticated)
 router.get('/me', authenticateUser, getProfile);
+
+// POST /api/auth/logout (Clears httpOnly cookie)
+router.post('/logout', logout);
 
 export default router;
