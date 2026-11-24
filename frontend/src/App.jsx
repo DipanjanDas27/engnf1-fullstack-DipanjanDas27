@@ -1,14 +1,28 @@
-import React, { useState } from 'react';
-import { Layers, Calendar, CheckSquare, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Layers, Calendar, CheckSquare, ShieldCheck, LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { checkAuth, logout, selectUser, selectIsAuthenticated, selectIsAdmin } from './store/slices/authSlice.js';
+import AuthModal from './components/AuthModal.jsx';
 
 export default function App() {
+  const dispatch = useDispatch();
+  const user = useSelector(selectUser);
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const isAdmin = useSelector(selectIsAdmin);
+
   const [activeTab, setActiveTab] = useState('triage');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  useEffect(() => {
+    dispatch(checkAuth());
+  }, [dispatch]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       {/* Top Navigation Bar */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          {/* Logo & Version */}
           <div className="flex items-center space-x-3">
             <div className="bg-indigo-600 text-white p-2 rounded-lg shadow-sm">
               <Layers className="w-5 h-5" />
@@ -22,12 +36,12 @@ export default function App() {
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex items-center space-x-1 sm:space-x-4">
+          <nav className="hidden sm:flex items-center space-x-2">
             <button
               onClick={() => setActiveTab('triage')}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 activeTab === 'triage'
-                  ? 'bg-indigo-50 text-indigo-700'
+                  ? 'bg-indigo-50 text-indigo-700 font-semibold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
@@ -39,9 +53,9 @@ export default function App() {
 
             <button
               onClick={() => setActiveTab('resources')}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 activeTab === 'resources'
-                  ? 'bg-indigo-50 text-indigo-700'
+                  ? 'bg-indigo-50 text-indigo-700 font-semibold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
@@ -51,32 +65,79 @@ export default function App() {
               </span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('admin')}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'admin'
-                  ? 'bg-indigo-50 text-indigo-700'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <span className="flex items-center space-x-1.5">
-                <ShieldCheck className="w-4 h-4" />
-                <span>Admin Views</span>
-              </span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                  activeTab === 'admin'
+                    ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <span className="flex items-center space-x-1.5">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Admin Dashboard</span>
+                </span>
+              </button>
+            )}
           </nav>
+
+          {/* User Account & Session Actions */}
+          <div className="flex items-center space-x-3">
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-3">
+                <div className="hidden md:flex flex-col text-right">
+                  <span className="text-sm font-semibold text-slate-800">{user.name}</span>
+                  <span className="text-xs text-slate-500 font-mono">{user.email}</span>
+                </div>
+                <span
+                  className={`text-xs font-bold px-2 py-0.5 rounded-full uppercase ${
+                    isAdmin
+                      ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                      : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                  }`}
+                >
+                  {user.role}
+                </span>
+                <button
+                  onClick={() => dispatch(logout())}
+                  title="Sign Out"
+                  className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow-xs flex items-center space-x-1.5 transition-colors cursor-pointer"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Sign In</span>
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Main Content Viewport */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
-          <h1 className="text-2xl font-bold text-slate-800">TriageSync Dashboard Scaffolding</h1>
+      {/* Main Viewport Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-8 text-center">
+          <h2 className="text-xl font-bold text-slate-800">
+            {activeTab === 'triage' && 'Support Ticket Triage Queue'}
+            {activeTab === 'resources' && 'Internal Resource Availability & Booking'}
+            {activeTab === 'admin' && 'Administrative Analytics & Governance'}
+          </h2>
           <p className="mt-2 text-slate-600 text-sm max-w-xl mx-auto">
-            React (Vite + Tailwind CSS) client initialized and ready for Auth Context, Optimistic Ticket Review, and 30-minute Resource Slot Booking grid.
+            {isAuthenticated
+              ? `Logged in as ${user.name} (${user.role}). Ready for ticket reviews and resource reservations.`
+              : 'Sign in to access tickets, trigger auto-classification, and reserve 30-minute equipment slots.'}
           </p>
         </div>
       </main>
+
+      {/* Auth Modal */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>
   );
 }
