@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Layers, Calendar, CheckSquare, ShieldCheck, LogIn, LogOut, User as UserIcon } from 'lucide-react';
 import { checkAuth, logout, selectUser, selectIsAuthenticated, selectIsAdmin } from './store/slices/authSlice.js';
 import AuthModal from './components/AuthModal.jsx';
+import TriageQueue from './pages/TriageQueue.jsx';
 
 export default function App() {
   const dispatch = useDispatch();
@@ -122,18 +123,25 @@ export default function App() {
 
       {/* Main Viewport Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-8 text-center">
-          <h2 className="text-xl font-bold text-slate-800">
-            {activeTab === 'triage' && 'Support Ticket Triage Queue'}
-            {activeTab === 'resources' && 'Internal Resource Availability & Booking'}
-            {activeTab === 'admin' && 'Administrative Analytics & Governance'}
-          </h2>
-          <p className="mt-2 text-slate-600 text-sm max-w-xl mx-auto">
-            {isAuthenticated
-              ? `Logged in as ${user.name} (${user.role}). Ready for ticket reviews and resource reservations.`
-              : 'Sign in to access tickets, trigger auto-classification, and reserve 30-minute equipment slots.'}
-          </p>
-        </div>
+        {activeTab === 'triage' && <TriageQueue />}
+
+        {activeTab === 'resources' && (
+          <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-8 text-center">
+            <h2 className="text-xl font-bold text-slate-800">Internal Resource Availability & Booking</h2>
+            <p className="mt-2 text-slate-600 text-sm max-w-xl mx-auto">
+              Ready for 30-minute equipment and room slot picker with atomic race-condition prevention.
+            </p>
+          </div>
+        )}
+
+        {activeTab === 'admin' && (
+          <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-8 text-center">
+            <h2 className="text-xl font-bold text-slate-800">Administrative Analytics & Governance</h2>
+            <p className="mt-2 text-slate-600 text-sm max-w-xl mx-auto">
+              Resource toggle, approval/rejection workflows, and metrics dashboard.
+            </p>
+          </div>
+        )}
       </main>
 
       {/* Auth Modal */}
